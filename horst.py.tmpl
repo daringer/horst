@@ -1,0 +1,83 @@
+#!/usr/bin/python
+#-*- coding: utf-8 -*-
+
+"""
+This is the Horst-bot main executable and config file!
+
+Quickstart:
+- Modify at least:
+  - Config.server
+  - Config.port
+  - Config.chans
+- Rename the file to horst.py
+- Run the bot:
+  $ python horst.py
+- write !help into channel to get more info
+
+Plugin activation:
+- Show all available plugins:
+  $ python horst.py -l
+- Choose and insert them into Config.used_plugins
+- Add Config.plugin_configs as needed
+
+"""
+
+import sys, os, time
+
+# basebot
+from basebot import BaseIRCBot
+
+# horst' plugins
+import plugins
+
+class Config:
+    # file to save sqlite db
+    db_file = "horst.sqlite"
+    
+    # only use these plugins
+    used_plugins = ["ShowHelp", "WhosHere", "JoinLeave", "Stats", "UserAdmin", "YouPeople", "Google"] 
+ 
+    # configuration for plugins
+    plugin_configs = {
+	"DeepBit":   {"api_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+        "UserAdmin": {"uber_pass": "replacewithreallysecurepasswort"}
+    }
+   
+    # if public message starts with this string, it is handled as command
+    command_prefix = "!"
+    
+    # irc-server
+    server = "irc.myserver.net"
+
+    # irc.port
+    port = 6667
+
+    # channels to join to on connect
+    chans = ["#foobar", "#mychan2"]
+
+    # the nickname to use
+    nick = "Horst"
+    
+class Horst(BaseIRCBot):
+    """Inherited from BaseIRCBot to overwrite specific actions/events"""
+    def custom_welcome_server(self, conn):
+        """Use this or somthing appropriate for your irc server to get oper"""
+	
+	# this changes from irc-server to irc-servers
+        #conn.send_raw("oper {} myscarypassword".format(nick))
+        pass
+        
+    def custom_welcome_channel(self, channel, conn):
+        """Use this to force operator on bot on channel join"""
+
+	# this changes from irc-server to irc-servers
+        #conn.send_raw("mode {0} +o {1}".format(channel, self.nick))
+        pass
+
+bot = Horst(Config)
+
+if len(sys.argv) > 1 and sys.argv[1] in ["--list-plugins", "-l"]:
+    bot.show_available_plugins()
+else:
+    bot.start_online_watchdog()
+    bot.start()

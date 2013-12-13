@@ -1,0 +1,15 @@
+- json plugin:
+    # !json create <name> <url> <extract1> <extract2> ... <extractN>
+    # !json del <name>
+    # !json [show] <name>
+
+- internationalization 
+  - Config.language = "en_US"
+  - "strings-dir" /strings/<lang> for each dir
+  - /strings/default is a link to default lang
+  - /strings/<lang>/plugin-<pluginname>.data
+  - /strings/<lang>/general.data
+  - foo.data contains one line for each string-id, like this:
+    myhello = Hello guys this is an english text
+  - provide global function _(str_id) which returns the appropriate string for the global set language
+
