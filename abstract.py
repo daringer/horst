@@ -76,11 +76,11 @@ class AbstractPlugin:
         if self.timer is not None:
             assert isinstance(self.timer, list), "The timer attribute must be a list!"
             for obj in self.timer: 
-                assert isinstance(obj, tuple) and len(obj) == 2, 
+                assert (isinstance(obj, tuple) and len(obj) == 2),\
                     "The timer attribute may only \
                      contain tuples inside the list with the length of 2!"
                 func, timeout = obj
-                assert isinstance(func, str) or callable(func), 
+                assert (isinstance(func, str) or callable(func)),\
                     "The first item inside the tuple must be \
                      either a string naming the method, or a callable object!"
                 assert isinstance(timeout, (int, long)),
