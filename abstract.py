@@ -108,7 +108,7 @@ class AbstractPlugin:
 			if isinstance(func, str):
 				func = getattr(self, func)
 				assert callable(func), "There is no method called: {}".format(func) 
-		    	horst_obj.timers.append( (func, timeout, timeout) )
+		    	horst_obj.timers.append( [func, float(timeout), timeout] )
 
     def handle_input(self, data):
         assert isinstance(data, Data)

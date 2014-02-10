@@ -79,7 +79,6 @@ class BaseIRCBot(SingleServerIRCBot):
     	print "[i] Listing all available plugins: " 
         for p in plugins.available_plugins:
             print "  [i] {}".format(p)
-            #print "  [i] {} ({})".format(p, self.plugins[p].__doc__)
 	print
 
     def execute_plugins(self, data):
@@ -272,14 +271,14 @@ class BaseIRCBot(SingleServerIRCBot):
         time.sleep(4)
         last_stamp = time.time()
         while True:
-            stamp = time.time()
             time.sleep(0.75)
-            stamp = int(time.time())
-            for func, remaining, timeout in self.timers:
+	    stamp = time.time()
+            for i, (func, remaining, timeout) in enumerate(self.timers):
                 remaining -= (stamp - last_stamp)
-                if remaining < 0:
-                    func()
-                    remaining = timeout
+                if remaining < 0.0:
+                    func(self)
+            	    self.timers[i] = [func, float(timeout), timeout]
+            self.timers[i] = [func, remaining, timeout]
             last_stamp = stamp
                 
     # online watchdog
@@ -290,7 +289,3 @@ class BaseIRCBot(SingleServerIRCBot):
             if not self.connection.is_connected():
                 print "WATCHDOG connect!"
                 self._connect()
-
-
-            
-

@@ -5,7 +5,7 @@ import re
 import datetime
 import time
 
-from db import BaseRecord, IntegerField, StringField, FloatField, DateTimeField, BooleanField
+from db.fields import BaseRecord, IntegerField, StringField, FloatField, DateTimeField, BooleanField
 from abstract import AbstractPlugin
 from utils import FancyDateTime, FancyTime, FancyFloat, FancyDate
 

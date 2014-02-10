@@ -9,7 +9,7 @@ import urllib2
 import json
 import sys
 
-from db import BaseRecord, IntegerField, StringField, FloatField, DateTimeField, BooleanField
+from db.fields import StringField, DateTimeField, BaseRecord
 from abstract import AbstractPlugin
 #from utils import FancyDateTime, FancyTime, FancyFloat, FancyDate
 
@@ -23,37 +23,37 @@ class GithubRepository(BaseRecord):
 
 class Github(AbstractPlugin):
     author = "meissna"
-    react_to = {"public": re.compile(r"(?P<action>add|del|list)(?:\s*)(?P<user>[^\s]*)(?:\s*)(?P<repo>[^\s]*)")} 
+    react_to = {"public_command": re.compile(r"(?P<action>add|del|list)(?:\s*)(?P<user>[^\s]*)(?:\s*)(?P<repo>[^\s]*)")} 
     provide = ["github"]
-    timer = [("check_all_repos", 10)]
+    timer = [("check_all_repos", 300)]
 
-    def check_repo(self, user, repo):
+    def check_repo(self, user, repo, horst_obj):
         host = "api.github.com"
-        args = urllib.urlencode({"page": "1", "per_page":"1"})
-        url = "http://{}/repos/{}/{}/commits?{}".format(host, user, repo, args)
+        args = urllib.urlencode({"page": "1", "per_page": "1"})
+        url = "https://{}/repos/{}/{}/commits?{}".format(host, user, repo, args)
         r = urllib2.Request(url)
-        with urllib2.urlopen(r) as fd:
-            data = json.loads(fd.read())
+        fd = urllib2.urlopen(r)
         
-        item = data[0]
+	item = json.loads(fd.read())[0]
+        
         commit_sha = item["sha"]
         commit = item["commit"]
         
-        print data
-
-        obj = GithubRepository.objects.get(user=user, repo=repo, last_sha=commit_sha)
-        if obj is None:
+        obj = GithubRepository.objects.get(user=user, repo=repo)
+        if obj.last_sha != commit_sha:
             comment = commit["message"]
-            commiter = commit["commiter"]
-            author = "{} <{}> at {}".format(commiter["author"], commiter["email"], commiter["date"])
+            committer = commit["committer"]
+            author = "{} <{}> at {}".format(committer["name"], committer["email"], committer["date"])
+	    for chan in horst_obj.chans.values():
+		    chan << "New commit on Github for user: {} in repo: {}".format(user, repo)
+		    chan << "Author: {}".format(author)
+		    chan << "Message: {}".format(comment)
+	    obj.last_sha = commit_sha
+            obj.save()
 
-            data.chan << "New commit on Github for user: {} in repo: {}".format(user, repo)
-            data.chan << "Author: {}".format(author)
-            data.chan << "Message: {}".format(comment)
-
-    def check_all_repos(self):
+    def check_all_repos(self, horst_obj):
         for item in GithubRepository.objects.all():
-            self.check_repo(item.user, item.repo)
+            self.check_repo(item.user, item.repo, horst_obj)
 
     def react(self, data):
         act, user, repo = data.line.get("action"), data.line.get("user"), data.line.get("repo")
@@ -86,7 +86,7 @@ class Github(AbstractPlugin):
                 data.chan << "No Github repositories registred yet!" 
             else:
                 for item in items:
-                    data.chan << "watching Github - user: {} repo: {}".format(user, repo)
+                    data.chan << "watching Github - user: {} repo: {}".format(item.user, item.repo)
         else:
             data.chan << "Please use one of these actions (add|del|list)!"
 
