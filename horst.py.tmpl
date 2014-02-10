@@ -71,7 +71,7 @@ class Horst(BaseIRCBot):
         """Use this to force operator on bot on channel join"""
 
 	# this changes from irc-server to irc-servers
-        #conn.send_raw("mode {0} +o {1}".format(channel, self.nick))
+        #conn.send_raw("mode {0} +o {1}".format(channel, nick))
         pass
 
 bot = Horst(Config)
