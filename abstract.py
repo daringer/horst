@@ -76,19 +76,21 @@ class AbstractPlugin:
         if self.timer is not None:
             assert isinstance(self.timer, list), "The timer attribute must be a list!"
             for obj in self.timer: 
-                assert (isinstance(obj, tuple) and len(obj) == 2),\
+                assert isinstance(obj, tuple) and len(obj) == 2,\
                     "The timer attribute may only \
                      contain tuples inside the list with the length of 2!"
                 func, timeout = obj
-                assert (isinstance(func, str) or callable(func)),\
+                assert isinstance(func, str) or callable(func),\
                     "The first item inside the tuple must be \
                      either a string naming the method, or a callable object!"
-                assert isinstance(timeout, (int, long)),
+                assert isinstance(timeout, (int, long)), \
                     "The second item inside the tuple must be an integer/long!"
 
 	# check for author and __doc__ attribute
-        assert isinstance(self.author, str), "No author was set inside {0}".format(self.__class__.__name__)
-	assert isinstance(self.__doc__, str), "No info attribute was set inside {0}".format(self.__class__.__name__)
+        assert isinstance(self.author, str), \
+		"No author was set inside {0}".format(self.__class__.__name__)
+	assert isinstance(self.__doc__, str), \
+		"No info attribute was set inside {0}".format(self.__class__.__name__)
         
         # make sure all entries inside provide-list have an entry inside the doc-dict
         if self.provide is not None:
@@ -101,11 +103,12 @@ class AbstractPlugin:
                 "Not all required config parameters for plugins provided!"
 
         # append timer(s) to appropriate dict
-        for func, timeout in self.timer:
-            if isinstance(func, str):
-                func = getattr(self, func)
-                assert callable(func), "There is no method called: {}".format(func) 
-            horst_obj.timers.append( (func, timeout, timeout) )
+	if self.timer is not None:
+		for func, timeout in self.timer:
+			if isinstance(func, str):
+				func = getattr(self, func)
+				assert callable(func), "There is no method called: {}".format(func) 
+		    	horst_obj.timers.append( (func, timeout, timeout) )
 
     def handle_input(self, data):
         assert isinstance(data, Data)

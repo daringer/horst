@@ -37,6 +37,14 @@ class BaseIRCBot(SingleServerIRCBot):
         self.plugins = [getattr(__import__("plugins.%s" % use, fromlist=use), use)(self) \
                             for use in self.used_plugins \
                                 if use in plugins.available_plugins]
+	
+	# check if all plugins could be loaded
+	active_plugins = [x.__class__.__name__ for x in self.plugins]
+	if any(p not in active_plugins for name in self.plugins for p in self.used_plugins):
+		print "Could not activate all plugins: {}".\
+			format(", ".join(p for p in self.used_plugins if p not in active_plugins))
+		print "Please recheck them all!"
+		sys.exit(1)
 
         #self.known_commands = {}
         #for plug in self.plugins:
@@ -242,7 +250,6 @@ class BaseIRCBot(SingleServerIRCBot):
 	    print "disconnected - trying reconnect!"
 	    self._connect()
 
-    
     # do something if nick in use
     def on_nicknameinuse(self, c, e):
         # todo: change nickname but how?!
@@ -258,7 +265,7 @@ class BaseIRCBot(SingleServerIRCBot):
         start_new_thread(self.timer_thread, ())
         
         # call parent
-        SingleServerIRCBot.start()
+        SingleServerIRCBot.start(self)
 
     # timeout based timer-thread
     def timer_thread(self):
@@ -268,7 +275,7 @@ class BaseIRCBot(SingleServerIRCBot):
             stamp = time.time()
             time.sleep(0.75)
             stamp = int(time.time())
-            for func, remaining, timeout in self.timers.iteritems():
+            for func, remaining, timeout in self.timers:
                 remaining -= (stamp - last_stamp)
                 if remaining < 0:
                     func()
