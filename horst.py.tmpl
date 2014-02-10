@@ -79,5 +79,4 @@ bot = Horst(Config)
 if len(sys.argv) > 1 and sys.argv[1] in ["--list-plugins", "-l"]:
     bot.show_available_plugins()
 else:
-    bot.start_online_watchdog()
     bot.start()

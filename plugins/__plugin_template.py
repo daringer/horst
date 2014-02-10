@@ -19,6 +19,10 @@ __metaclass__ = type
 #    m.myfloat = 1234.3123
 #    m.save()
 #
+#    # delete an object
+#    m.destroy()
+#
+#    m = MyRecord.objects.get(mystring="bla")
 #    m = MyRecord.objects.get(mystring="bla")
 #    assert isinstance(m, MyRecord) or m is None
 #    
@@ -59,6 +63,10 @@ class MyRecord(BaseRecord):
 #                          like returned from re.compile(). Use (?:\s+) to
 #                          match whitespaces and use named groups so the resulting
 #                          dict will be passed to react(). An example:
+#            "timers"   -> list of 2-tuples, register the provided method(s) for a timer based execution.
+#                           You may register the method as string or as a callable object!
+#                           [("methodname", timeout_in_seconds), (method_object, timeout_in_seconds)]
+#
 #                          re.compile("(?P<command>foo)(?:\s+)(?P<option>do|not|yes)(?:\s+)(?P<value>.+)") 
 #                           
 #                          The regular expressions for "private" and "public_command"
@@ -66,7 +74,8 @@ class MyRecord(BaseRecord):
 #                          
 #            "author"   -> The plugin author
 #                          
-#            "provide"  -> a list of commands provided by this plugin, private commands are marked with an underscore "_" in front
+#            "provide"  -> A list of commands provided by this plugin, \
+#                          private commands are marked with an underscore "_" in front
 #            
 #            "doc"      -> a dictionary containing 2-tuples with the command as key to show help. (optional)
 #                          only if plugin contains commands, all items from self.provide must be availible as keys here.
@@ -103,8 +112,10 @@ class MyPlugin(AbstractPlugin):
         #
         # data.user << "sends this text as /query to the user, not really nice, as this opens a new tab/window on most clients"
         # data.user << "sends this notice to the user - non intrusive as most clients show this in the active tab/window"
-
-        return True
+      
+        #
+        # return value is ignored!
+        #
 
     doc = { "mycommand": ("mycommand [myarg]", "My Longer description"),
             "myothercommand": ("myothercommand", "Long FooBar desc and stuff"),

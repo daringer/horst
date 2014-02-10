@@ -26,6 +26,8 @@ class BaseIRCBot(SingleServerIRCBot):
 
         self.command_prefix = conf.command_prefix
         self.used_plugins = conf.used_plugins
+
+        self.timers = []
         
         #self.plugins = []
         #for use in self.used_plugins:
@@ -246,12 +248,36 @@ class BaseIRCBot(SingleServerIRCBot):
         # todo: change nickname but how?!
         pass
 
-    def start_online_watchdog(self):
+    #####
+    ##### no hooks here anymore
+    #####
+    def start(self):
+        # start threads
 	from thread import start_new_thread
 	start_new_thread(self.online_watchdog, ())
+        start_new_thread(self.timer_thread, ())
+        
+        # call parent
+        SingleServerIRCBot.start()
 
+    # timeout based timer-thread
+    def timer_thread(self):
+        time.sleep(4)
+        last_stamp = time.time()
+        while True:
+            stamp = time.time()
+            time.sleep(0.75)
+            stamp = int(time.time())
+            for func, remaining, timeout in self.timers.iteritems():
+                remaining -= (stamp - last_stamp)
+                if remaining < 0:
+                    func()
+                    remaining = timeout
+            last_stamp = stamp
+                
     # online watchdog
     def online_watchdog(self):
+        # keep looping until
 	while True:
             time.sleep(10)
             if not self.connection.is_connected():

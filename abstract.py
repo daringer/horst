@@ -21,13 +21,18 @@ class AbstractPlugin:
                           match whitespaces and use named groups so the resulting
                           dict will be passed to react(). An example:
                           re.compile("(?P<command>foo)(?:\s+)(?P<option>do|not|yes)(?:\s+)(?P<value>.+)") 
-                    
+
+      "timer"          -> list of 2-tuples, register the provided method(s) for a timer based execution.
+                          You may register the method as string or as a callable object!
+                          [("methodname", timeout_in_seconds), (method_object, timeout_in_seconds)]
+
       "config"         -> a dict providing configuration data for this plugin
       "needed_configs" -> a list of mandatory configuration items to be found inside the config-dict
 
       "author"         -> The plugin author
-      "doc"            -> a dictionary containing 2-tuples with the command as key to show help. 
-                          only if plugin contains commands, all items from self.provide must be availible as keys here.
+      "doc"            -> a dictionary containing 2-tuples with the command as
+                          key to show help.  only if plugin contains commands, all items from
+                          self.provide must be availible as keys here.
       "__doc__"        -> regular docstring to shortly describe the plugin's features
     """
 
@@ -36,6 +41,8 @@ class AbstractPlugin:
     author = ""
     react_to = {}
     provide = None
+
+    timer = None
     
     config = {}
     needed_configs = None
@@ -57,14 +64,28 @@ class AbstractPlugin:
 	self.config = self.horst_obj.config.plugin_configs.get(self.__class__.__name__) or {}
         self.command_prefix = self.cp = horst_obj.command_prefix
 
-        # check if plugin fulfills conventions
+        # check if plugin fulfills conventions (react_to consistency)
         assert isinstance(self.react_to, dict)
         for key, val in self.react_to.items():
             assert key in ["private", "public", "dcc", "join", "leave",
                            "server_connect", "enter_channel", "nick_change", "leave_channel",
                            "public_command"], key
             assert val.search, "The value of react_to must be an obj from re.compile()"
-        
+
+        # check for correct timer contents, if applicable
+        if self.timer is not None:
+            assert isinstance(self.timer, list), "The timer attribute must be a list!"
+            for obj in self.timer: 
+                assert isinstance(obj, tuple) and len(obj) == 2, 
+                    "The timer attribute may only \
+                     contain tuples inside the list with the length of 2!"
+                func, timeout = obj
+                assert isinstance(func, str) or callable(func), 
+                    "The first item inside the tuple must be \
+                     either a string naming the method, or a callable object!"
+                assert isinstance(timeout, (int, long)),
+                    "The second item inside the tuple must be an integer/long!"
+
 	# check for author and __doc__ attribute
         assert isinstance(self.author, str), "No author was set inside {0}".format(self.__class__.__name__)
 	assert isinstance(self.__doc__, str), "No info attribute was set inside {0}".format(self.__class__.__name__)
@@ -78,7 +99,14 @@ class AbstractPlugin:
 	if self.needed_configs is not None:
             assert all(k in self.config.keys() for k in self.needed_configs), \
                 "Not all required config parameters for plugins provided!"
-    
+
+        # append timer(s) to appropriate dict
+        for func, timeout in self.timer:
+            if isinstance(func, str):
+                func = getattr(self, func)
+                assert callable(func), "There is no method called: {}".format(func) 
+            horst_obj.timers.append( (func, timeout, timeout) )
+
     def handle_input(self, data):
         assert isinstance(data, Data)
         
