@@ -45,8 +45,8 @@ class Github(AbstractPlugin):
             committer = commit["committer"]
             author = "{} <{}> at {}".format(committer["name"], committer["email"], committer["date"])
 	    for chan in horst_obj.chans.values():
-		    chan << "New commit on Github for user: {} in repo: {}".format(user, repo)
-		    chan << "Author: {}".format(author)
+		    chan << "Whooot neuer Commit auf Github - User: {} in Repo: {}".format(user, repo)
+		    chan << "Autor: {}".format(author)
 		    chan << "Message: {}".format(comment)
 	    obj.last_sha = commit_sha
             obj.save()
@@ -59,40 +59,39 @@ class Github(AbstractPlugin):
         act, user, repo = data.line.get("action"), data.line.get("user"), data.line.get("repo")
         if act in ["add", "del"]:
             if user is None or repo is None:
-                data.chan << "Please provide two arguments (github user and repo name)"
+                data.chan << "Maaan, einfach ZWEI Argumente mitgeben, <github-user> _und_ <github-repo>"
                 return 
 
             db_obj = GithubRepository.objects.get(user=user, repo=repo)
             
         if act == "add":
             if db_obj is not None:
-                data.chan << "There already exists an entry for user: {} and repository: {} inside the database".\
-                        format(user, repo)
+                data.chan << "Hierrrr, das Repo: {} von User: {} hab ich schon lange auf der watchlist!".format(repo, user)
             else:
                 m = GithubRepository(user=user, repo=repo)
                 m.save()
-                data.chan << "added user: {} repo: {}".format(user, repo)
+                data.chan << "Neues Github Repo is drin - User: {} Repo: {}".format(user, repo)
 
         elif act == "del":
             if db_obj is None:
-                data.chan << "Could not find user: {} with repository: {} in database".format(user, repo)
+                data.chan << "Kann den user: {} mit dem Repo: {} nicht finden! Typo???".format(user, repo)
             else:
                 db_obj.destroy()
-                data.chan << "deleted user: {} repo: {}".format(user, repo)
+                data.chan << "Repo: {} wird nicht mehr beobachet (user: {})".format(repo, user)
 
         elif act == "list":
             items = GithubRepository.objects.all()
             if len(items) == 0:
-                data.chan << "No Github repositories registred yet!" 
+                data.chan << "Kann leider nichts auflisten, noch keine Repositories eingetragen bei mir!" 
             else:
                 for item in items:
-                    data.chan << "watching Github - user: {} repo: {}".format(item.user, item.repo)
+                    data.chan << "Github - User: {} Repo: {}".format(item.user, item.repo)
         else:
-            data.chan << "Please use one of these actions (add|del|list)!"
+            data.chan << "Oh man, DREI optionen gibt es, benutz auch nur die, echt eh... (add|del|list)"
 
         return True
 
-    doc = { "github": ("github <add <user> <reponame>>|<del <user> <reponame>>|<show [repo]>",
+    doc = { "github": ("github <add <user> <reponame>>|<del <user> <reponame>>|<list>",
                        "Either add or delete a github repo to monitor - or simply list all")}
 
     __doc__ = "This plugin provides a very simple monitor for Github repositories"
