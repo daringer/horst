@@ -92,7 +92,7 @@ class Github(AbstractPlugin):
 
         return True
 
-    doc = { "github": ("github <add|del|list> [reponame]", 
-                       "Either add oder delete an github to monitor - or simply list all")}
+    doc = { "github": ("github <add <user> <reponame>>|<del <user> <reponame>>|<show [repo]>",
+                       "Either add or delete a github repo to monitor - or simply list all")}
 
     __doc__ = "This plugin provides a very simple monitor for Github repositories"
