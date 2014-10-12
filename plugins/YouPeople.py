@@ -21,4 +21,4 @@ class YouPeople(AbstractPlugin):
         return True
 
     doc = {}
-    __doc__ = "Addresses all in channel by writing, thus highlightning, their nicks"
+    __doc__ = "Da werd ich doch sofort mal alle die da sind anschreien, wenn du es mir befiehlst"

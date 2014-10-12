@@ -55,3 +55,6 @@ class YourMother(AbstractPlugin):
     
     def react(self, data):
         data.chan << choice(self.mother).format(data.user.name)
+    
+    doc = {}
+    __doc__ = "Ja ich hab scharfe Sachen zu sagen, cool oder?"
