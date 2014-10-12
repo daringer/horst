@@ -2,12 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import re
-import datetime
-import time
 import sys
 
 from abstract import AbstractPlugin
-from utils import FancyDateTime, FancyTime, FancyFloat, FancyDate
 
 __metaclass__ = type
 
