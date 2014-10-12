@@ -63,15 +63,16 @@ class MyRecord(BaseRecord):
 #                          like returned from re.compile(). Use (?:\s+) to
 #                          match whitespaces and use named groups so the resulting
 #                          dict will be passed to react(). An example:
-#            "timers"   -> list of 2-tuples, register the provided method(s) for a timer based execution.
-#                           You may register the method as string or as a callable object!
-#                           [("methodname", timeout_in_seconds), (method_object, timeout_in_seconds)]
 #
 #                          re.compile("(?P<command>foo)(?:\s+)(?P<option>do|not|yes)(?:\s+)(?P<value>.+)") 
 #                           
 #                          The regular expressions for "private" and "public_command"
 #                          only match against                      
 #                          
+#            "timers"   -> list of 2-tuples, register the provided method(s) for a timer based execution.
+#                           You may register the method as string or as a callable object!
+#                           [("methodname", timeout_in_seconds), (method_object, timeout_in_seconds)]
+#
 #            "author"   -> The plugin author
 #                          
 #            "provide"  -> A list of commands provided by this plugin, \

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-import sys
+import sys, os
 
 from abstract import AbstractPlugin
 
@@ -17,7 +17,7 @@ class SelfKill(AbstractPlugin):
 
     def react(self, data):
 	data.chan << "Auf Wiedersehen du grauuuuusaaammmmeeee Weeeeelttt......."
-	sys.exit(1)
+	os.system("killall python")
 
     doc = { "selfkill": ("selfkill", "Ich werde mich sofort selbst beerdigen - bitte nicht, neeeeiiiinnnn!") }
 
