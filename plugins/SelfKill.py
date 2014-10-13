@@ -11,7 +11,7 @@ __metaclass__ = type
 class SelfKill(AbstractPlugin):
     author = "meissner"
 
-    react_to = {"public": re.compile(r"(?P<all>.+)") } 
+    react_to = {"public_command": re.compile(r"(?P<all>.+)") } 
 
     provide = ["selfkill"]
 
