@@ -31,12 +31,8 @@ class FancyPrint:
     def __init__(self, raw):
         self.raw = raw 
 
-    def __str__(self):
-        pass
-    __repr__ = __str__
-
     def get(self):
-        return self.__unicode__()
+        return str(self)
 
 class FancyTime(FancyPrint):
     def __str__(self):
