@@ -8,18 +8,35 @@ import time
 
 from time import time as timestamp
 
+from config import Config
+
 __metaclass__ = type
 
 class DataException(Exception):
     pass
 
+def strip_nickname(nick):
+    """Remove leading special characters from nickname"""
+
+    # catch non-string-alike input
+    if nick is None or not hasattr(nick, "__getitem__"):
+        return nick
+
+    real_nick = nick
+    if real_nick[0] == "&" or real_nick[0] == "@" or real_nick[0] == "!":
+        return real_nick[1:]
+    return real_nick
 
 class FancyPrint:
     def __init__(self, raw):
-        self.raw = raw
+        self.raw = raw 
+
     def __str__(self):
         pass
-    __repr__ = __unicode__ = __str__
+    __repr__ = __str__
+
+    def get(self):
+        return self.__unicode__()
 
 class FancyTime(FancyPrint):
     def __str__(self):
@@ -46,6 +63,7 @@ class FancyFloat(FancyPrint):
             return str(round(self.raw, 2))
         else:
             return str(round(self.raw, 1))
+
 class Data:
     _vars = ["line", "line_raw", "reaction_type", "chan", "user", "command"]
     def __init__(self, **kw):
@@ -53,9 +71,9 @@ class Data:
             setattr(self, k, kw[k] if k in kw else None)
 
     def __repr__(self):
-        return "<Data %s>" % ", ".join("%s=%s" % (k, getattr(self,k)) for k in self._vars)
-    __unicode__ = __str__ = __repr__
-                
+        return "<Data {}>".format(", ".join("{}={}".format(k, getattr(self, k)) \
+                    for k in self._vars))
+    __str__ = __repr__
         
 class Channel:
     def __init__(self, name, conn):
@@ -69,22 +87,19 @@ class Channel:
     
     def send(self, msg):
         """Sends a single str to the channel and handles a list of str as multiple lines"""
-        msg = [msg] if not isinstance(msg, list) else msg
+        msg = [msg] if not isinstance(msg, (tuple, list)) else msg
         for m in msg:
-            try:
-                self.connection.privmsg(self.name, m)
-            except UnicodeEncodeError as e:
-                self.connection.privmsg(self.name, m.encode("utf-8", "ignore"))
+            self.connection.privmsg(self.name, m)
     
     def __lshift__(self, msg):
         """Shortcut for .send() - just do a: chan_obj << "my text to send"""
-        self.send(msg)   
+        self.send(msg)
     
     def __repr__(self):
         return "<Channel name=%s join_time=%s users=%s>" % \
             (self.name, self.join_time, ", ".join(x.__repr__() for x in self.users))
-    __unicode__ = __str__ = __repr__
- 
+    __str__ = __repr__
+
 class User:
     def __init__(self, name, hostname, connection):
         self.name = name
@@ -114,5 +129,6 @@ class User:
         self.notice(msg)   
 
     def __repr__(self):
-        return "<User name=%s channels=%s hostname=%s>" % (self.name, ", ".join(c.name for c in self.channels), self.hostname)
-    __unicode__ = __str__ = __repr__
+        return "<User name={} channels={} hostname={}>". \
+                format(self.name, ", ".join(c.name for c in self.channels), self.hostname)
+    __str__ = __repr__
