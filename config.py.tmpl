@@ -1,0 +1,90 @@
+"""
+Configuration file for "Horst" the alround IRC-bot/bouncer/admin/chatter/slave
+
+- copy this file to "config.py"
+- change the settings for your needs!
+  - change "uber_pass" inside "plugin_configs" to something secure,
+    it is needed to promote/degrade users inside the "UserAdmin" plugin
+  - change the "nick" (and fallback "nick") to anything you like me to be called
+  - change "server" and "port" to match your IRC-server 
+  - add any number of channels/rooms to "chans"
+"""
+
+class Config:
+    ###########################################################################
+    ############## DATABASE SETTINGS 
+    # sqlite-database file to be used
+    db_file = "horst.sqlite"
+    # show sqlite debug output in stdout
+    db_debug = False
+ 
+    ###########################################################################
+    ############## PLUGINS SETTINGS / CONFIGURATION
+    # which plugins should be used
+    used_plugins = ["ShowHelp", "WhosHere", "JoinLeave", "Stats", "UserAdmin",
+                    "YouPeople", "Google", "Github", "SelfKill", "YourMother",
+                    "Quote", "ReloadPlugin" ]
+    # constants provided to plugins
+    plugin_configs = {
+        "UserAdmin":    {"uber_pass": "provide_password_here_for_user_plugin"},
+	    #"anyplugin":   {"somekey": 123, "anotherkey": "some_plugin_config"}
+    }
+    # signal-character(s) to be followed by a (public_)command
+    command_prefix = "!"
+    
+    ###########################################################################
+    ############## IRC-SERVER / CHANNELS CONFIGURATION
+    # irc server details (hostname, irc-server-port)
+    server = "irc.myserver.net"
+    port = 6667
+    # channels to join on server connect 
+    chans = ["#test", "#something"]
+    # "oper" password for irc-server
+    oper_password = "my_oper_password"
+
+    ### The following two vary massivly among the different irc-servers
+    # "oper" (raw-)command-line (to acquire oper status on server connect)
+    server_welcome_cmd = "oper {user} {oper_pass}"
+    # "mode" command to run on entering a new channel (to get operator status)
+    channel_welcome_cmd = "mode {chan} +o {user}"
+
+    ###########################################################################
+    ############## TESTING/DEBUGGING MODE
+    # 'True' activates various tweaks/flags to allow debugging/testing
+    # (implicitly sets 'db_debug' to 'True'
+    test_mode = False
+    # channels to join, if in testing mode
+    test_chans = ["#quark"]
+    # a nickname to be used, if in testing mode
+    test_nick = "Horst|test"
+    # activate only these plugins during testing!
+    test_plugins = ["testplugin", "experimental"]
+
+    ###########################################################################
+    ############## NICKNAMES
+    # prefered 'nick' to be used on IRC-server
+    nick = "Horst"
+    # fallback nickname if 'nick' is in use! (FIXME/TODO: NOT USED!!!)
+    nick2 = "-Horst-"
+    
+    ###########################################################################
+    ############## MISCELLANEOUS
+    # activate online watchdog (FIXME: does not work as intended)
+    # - inside the desired channels
+    # - still connected to irc-server 
+    # ---> reconnect, if needed 
+    online_watchdog = False
+
+    # The "crash_watchdog" simply does a generic try-catch to 
+    # catch any Exception, SO ANY ERROR/EXCEPTION WILL BE CATCHED AND IGNORED!!!
+    # IMPORTANT: For any kind of debugging/testing switch this off!
+    crash_watchdog = False
+
+    # if 'True', all plugins are handled inside threads 
+    # pros: errors are mostly uncritical, faster event handling
+    # cons: race-conditions start to occur, harder to debug
+    threaded_plugins = False
+
+    # try to encode all text seen to the following encoding-scheme
+    encoding_scheme = "utf-8"
+ 
