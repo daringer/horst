@@ -11,6 +11,11 @@ class AbstractPlugin:
     """
     Available properties for a plugin:
       "provide"        -> a list of commands provided by this plugin
+
+      "aliases"        -> dictonary mapping <alias> to a <provide-cmd>,
+                          the alias works exactly like the original, without 
+                          the need to add documentation for it.
+                          
       "react_to"       -> has to be a dict with keys out of these:
                           ["private", "public", "dcc", "join", "leave",
                           "server_connect", "enter_channel", "nick_change", "leave_channel",
@@ -30,6 +35,7 @@ class AbstractPlugin:
       "needed_configs" -> a list of mandatory configuration items to be found inside the config-dict
 
       "author"         -> The plugin author
+      
       "doc"            -> a dictionary containing 2-tuples with the command as
                           key to show help.  only if plugin contains commands, all items from
                           self.provide must be availible as keys here.
@@ -41,6 +47,7 @@ class AbstractPlugin:
     author = ""
     react_to = {}
     provide = None
+    aliases = None
 
     timer = None
     
@@ -61,7 +68,7 @@ class AbstractPlugin:
     def __init__(self, horst_obj, *v, **kw):
         # inherit various properties from bot
         self.horst_obj = horst_obj
-	self.config = self.horst_obj.config.plugin_configs.get(self.__class__.__name__) or {}
+        self.config = self.horst_obj.config.plugin_configs.get(self.__class__.__name__) or {}
         self.command_prefix = self.cp = horst_obj.command_prefix
 
         # check if plugin fulfills conventions (react_to consistency)
@@ -86,29 +93,31 @@ class AbstractPlugin:
                 assert isinstance(timeout, (int, long)), \
                     "The second item inside the tuple must be an integer/long!"
 
-	# check for author and __doc__ attribute
+        # check for author and __doc__ attribute
         assert isinstance(self.author, str), \
-		"No author was set inside {0}".format(self.__class__.__name__)
-	assert isinstance(self.__doc__, str), \
-		"No info attribute was set inside {0}".format(self.__class__.__name__)
-        
+            "No author was set inside {0}".format(self.__class__.__name__)
+        assert isinstance(self.__doc__, str), \
+            "No info attribute was set inside {0}".format(self.__class__.__name__)
         # make sure all entries inside provide-list have an entry inside the doc-dict
         if self.provide is not None:
             assert all((cmd if not cmd.startswith("_") else cmd[1:]) in self.doc for cmd in self.provide), \
-                "Not documented Plugin - commands: %s" % ", ".join(self.provide)
-
-	# check if config-dict contains all items from needed_config-list
-	if self.needed_configs is not None:
+                "Not documented plugin - commands: {}".format(", ".join(self.provide))
+        # check if each mapped cmd exists inside 'provide'
+        if self.aliases is not None:
+            assert all((target in self.provide) for alias, target in self.aliases.items()), \
+                "Alias: {} maps to not existing cmd: {}".format(alias, target)
+        # check if config-dict contains all items from needed_config-list
+        if self.needed_configs is not None:
             assert all(k in self.config.keys() for k in self.needed_configs), \
                 "Not all required config parameters for plugins provided!"
 
         # append timer(s) to appropriate dict
-	if self.timer is not None:
-		for func, timeout in self.timer:
-			if isinstance(func, str):
-				func = getattr(self, func)
-				assert callable(func), "There is no method called: {}".format(func) 
-		    	horst_obj.timers.append( [func, float(timeout), timeout] )
+        if self.timer is not None:
+            for func, timeout in self.timer:
+                if isinstance(func, str):
+                    func = getattr(self, func)
+                    assert callable(func), "There is no method called: {}".format(func) 
+                    horst_obj.timers.append( [func, float(timeout), timeout] )
 
     def handle_input(self, data):
         assert isinstance(data, Data)
@@ -122,7 +131,7 @@ class AbstractPlugin:
                 
                 # strip whitespaces here, good place? (don't if data.line[k] is not str, means is equal None)
                 for k in data.line:
-                    data.line[k] = data.line[k].strip() if isinstance(data.line[k], str) else data.line[k]
+                    data.line[k] = data.line[k].strip() if isinstance(data.line[k], (unicode, str)) else data.line[k]
                         
                 self.react(data)
             elif data.reaction_type in ["public_command", "private"]:
