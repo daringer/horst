@@ -14,7 +14,7 @@ class ShowHelp(AbstractPlugin):
 
     def react(self, data):
         all_cmds = self.horst_obj.known_commands
-        plugins = self.horst_obj.plugins 
+        plugins = sorted(self.horst_obj.name2pobj.values(), key=lambda x: x.__class__.__name__)
         aliases = self.horst_obj.known_aliases
 
         ### show all available (public) commands 
