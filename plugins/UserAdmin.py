@@ -8,7 +8,7 @@ import time
 from db.fields import IntegerField, StringField, DateTimeField, OneToManyRelation, OptionField, BooleanField
 from db.baserecord import BaseRecord
 from abstract import AbstractPlugin
-from utils import FancyDateTime, FancyTime
+from utils import FancyDateTime, FancyTime, strip_nickname
 from plugins.Stats import StatRecord
 
 
@@ -26,12 +26,11 @@ class UserRecord(BaseRecord):
     _logged_in = {}    
             
     def promote(self, direction):
-        """
-        Degrade or promote UserRecord according to the 'direction' argument: 
+        """Degrade or promote UserRecord according to the 'direction' argument: 
         positive means promoting and a negativ value means a degrade
         """
-        assert direction in [-1,1]
-        new_idx = self.fields["rank"].options.index(self.rank)+direction
+        assert direction in [-1, 1]
+        new_idx = self.fields["rank"].options.index(self.rank) + direction
         if new_idx in [i for i, rankname in enumerate(self.fields["rank"].options)]:
             self.rank = self.fields["rank"].options[new_idx]
         self.save()
@@ -49,12 +48,12 @@ class UserRecord(BaseRecord):
         
         
 class UserAdmin(AbstractPlugin):
-    author = "meissna"
+    author = "meissner"
     react_to = {"private": re.compile(r"(?:(?P<user>[\|\w_]+)\s(?P<uber_pass>.+))|(?P<pass>\w*)"),
                 "public_command": re.compile(r"(?P<all>.*)"),
                 "public": re.compile(r"(?P<all>.+)") } 
     
-    provide = ["_identify", "_register", "_password", "giveop", "_promote", "_degrade", "status"]
+    provide = ["_identify", "_register", "_password", "giveop", "_promote", "_degrade", "status", "delete"]
 
     needed_configs = ["uber_pass"]
     
@@ -65,11 +64,12 @@ class UserAdmin(AbstractPlugin):
                "+a" if urec.rank == "Admin" else \
                "-aov"
         if flag == "-aov":
-            channel << "Ne, du musst schon Member, Operator oder Admin sein, du bist nur: %s" % urec.rank
-        channel.connection.send_raw("mode %s %s %s" % (channel.name, flag, nick))
+            channel << "Ne, du musst schon Member, Operator oder Admin sein, du bist nur: {}". \
+                    format(urec.rank)
+        channel.connection.send_raw("mode {} {} {}".format(channel.name, flag, nick))
  
     def react(self, data):
-        nick, ur = data.user.name, None        
+        nick, ur = strip_nickname(data.user.name), None        
         if data.reaction_type == "public_command":
             ur = UserRecord.logged_in(data.user)
             if ur is None:
@@ -77,9 +77,9 @@ class UserAdmin(AbstractPlugin):
             elif data.command == "giveop":
                 self.give_rights(ur, data.chan, data.user.name)
             elif data.command == "status":
-                data.chan << "Du bist ein: %s" % ur.rank
+                data.chan << "Du bist ein: {}".format(ur.rank)
             else:
-                data.chan << "Nein, ausser '%sgiveop' und '%sstatus' musst du das private machen" % (self.cp, self.cp)
+                data.chan << "Nein, ausser '{sep}giveop' und '{sep}status' musst du das private machen".format(sep=self.cp)
         
         elif data.reaction_type == "public":
             # saving the relation between just used nickname and user-account
@@ -105,41 +105,67 @@ class UserAdmin(AbstractPlugin):
                         data.user << "Habe deinen Nick nicht als Login in der Datenbank, mach mal 'nen 'register'"
                     
             elif data.command == "register":
-                if UserRecord.objects.get(login=data.user.name):
-                    data.user << "Der Loginname: '%s' ist bereits vergeben, wähle einen Anderen!!!" % nick
+                mynick = strip_nickname(data.user.name)
+                mypass = data.line["pass"]
+
+                # sanity check nickname and password
+                if len(mynick) < 3 or len(mypass) < 3:
+                    data.user << "Nicht gut gewaehlt, bitte mindestens 3 Zeichen bei Login, sowie Passwort!"
+
+                elif UserRecord.objects.exists(login=mynick):
+                    data.user << "Der Loginname: '{}' ist bereits vergeben, wähle einen anderen!".\
+                            format(mynick)
                 else:
-                    ur = UserRecord(login=nick, password=data.line["pass"])
+                    ur = UserRecord(login=mynick, password=mypass)
+                    ur.save()
                     data.user << "Du bist jetzt registriert! Logge ein mit: 'identify'"
-                    
+            
+            elif data.command == "delete":
+                mynick = strip_nickname(data.user.name)
+                mypass = data.line["pass"]
+                ur = UserRecord.objects.get(login=mynick, password=mypass)
+                if ur is not None:
+                    ur.destroy()
+                    data.user << "User: {} aus der Datenbank gelöscht!".format(ur.name)
+                else:
+                    data.user << "Aha, User mit falschem Passwort löschen, das hab ich ja gern..."
+
             elif data.command == "password":
-                ur = self.logged_in(data.user)
+                ur = UserRecord.logged_in(data.user)
                 if ur:
-                    ur.password = data.line["pass"]
-                    data.user << "Passwort erfolgreich geändert!"
+                    if ur.password == data.line["user"]:
+                        ur.password = data.line["uber_pass"]
+                        data.user << "Passwort erfolgreich geändert!"
+                        ur.save()
+                    else:
+                        data.user << "Musst halt auch dein altes <password> richtig angeben!"
                 else:
                     data.user << "Du bist nicht eingeloggt..."           
                     
             elif data.command in ["promote", "degrade"]:
+                tar_nick = strip_nickname(data.line["user"])
+                
+                # verify against master 'uber_password' from Config (config.py)
                 if data.line["uber_pass"] == self.config["uber_pass"]:
-                    ur = UserRecord.objects.get(login=data.line["user"])
+                    ur = UserRecord.objects.get(login=tar_nick)
                     if ur:
                         ur.promote(-1 if data.command == "degrade" else 1)
-                        data.user << "Der User: '%s' ist nun ein: '%s'" % (ur.login, ur.rank)
+                        ur.save()
+                        data.user << "Der User: '{}' ist nun ein: '{}'". \
+                                format(ur.login, ur.rank)
                     else:
-                        data.user << "Der User: '%s' ist nicht vorhanden/registriert" % data.line["user"]
+                        data.user << "Der User: '{}' ist nicht vorhanden/registriert". \
+                                format(tar_nick)
                 else:
                     data.user << "Böse, böse falsches Passwort, willste ärger?"
             else:
                 # we never should reach this
                 assert False
-        
-            # if userrecord was touched, save it!
-            if ur:
-                ur.save()
     
     doc = { "identify" : ("identify <password>", "Logge dich bei mir ein und identifiziere dich mit deinem 'password'"),
             "register" : ("register <password>", "Registriere dich bei mir mit dem einem beliebigen 'password'"),
-            "password" : ("password <new_password>", "Ändere dein Passwort zu 'new_password'"),
+            "delete"   : ("delete <password>", "Lösche deinen eigenen Benutzer - natürlich nur mit dem richtigem 'password'"),
+            "password" : ("password <password> <new_password>", "Ändere dein Passwort zu 'new_password'"),
             "promote"  : ("promote <user> <uber_password>", "Befördere einen 'user' mit Hilfe des 'uber_password's"),
             "degrade"  : ("degrade <user> <uber_password>", "Degradiere einen 'user' mit Hilfe des 'uber_password's"),
             "giveop"   : ("giveop", "Ich gebe dir Operator Status falls du berechtigt bist"),
