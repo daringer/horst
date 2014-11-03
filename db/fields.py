@@ -5,207 +5,339 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import time
 
 from core import DatabaseError
-from baserecord import BaseRecord
+from baserecord import BaseRecord 
+
+from config import Config
 
 __metaclass__ = type
 
 # fancier use of properties
-Property = lambda func: property(**func()) 
+#Property = lambda func: property(**func()) 
 
 class AbstractField(object):
     """Every Field class should be a derivate from this class"""
     __metaclass__ = ABCMeta
     
-    sqlite_name = None
-    default_value = None
+    # various field flags (globally accepted keywords)
+    general_keywords = ["name", "size", "default", "primary_key", "required", "unique", "auto_inc"]
+    default = None        # default value
+    name = None           # name of field/column
+    size = None           # storing size in bytes (precision)
+    required = False      # value required to be set on insert/update
+    primary_key = False   # (the only!) primary_key inside table (row identity)
+    unique = False        # each row has a unique value (for this column)
+    auto_inc = False      # automatically increments column on each insert
+
+    # keep Field-specific applicable keywords
     accepted_keywords = []
-    general_keywords = ["default"]
    
-    @Property
-    def name():
-        def fget(self):
-            return self._name
-        def fset(self, val):
-            self._name = val
-        return locals()
-    
-    @Property
-    def colname():
-        def fget(self):
-            if issubclass(self.__class__, ManyToOneRelation):
-                return self.name + "_id"
-            elif self.sqlite_name:
-                return self.name
-            else:
-                return None  
-        return locals()
-        
+    ###
+    # ACTUALLY NEED PROPERTIES TO REALIZE READ-ONLY STUFF, BUT NO GOOD SOLUTION FOUND YET!
+    ###
+
     def __init__(self, **kw):
-        # check if kw contains only legal keywords
+        # check, if kw contains solely legal keywords
         wrong = [k for k in kw if not k in (self.accepted_keywords + self.general_keywords)]
-        if len(wrong) != 0:
-            raise DatabaseError("Keyword(s): %s not supported by this Field: %s" % (", ".join(wrong), self.__class__.__name__))
+        if len(wrong) > 0:
+            raise DatabaseError("Keyword(s): {} not supported by this Field: {}". \
+                    format(", ".join(wrong), self.__class__.__name__))
         
+        # setting FieldObjects as member names
         for k, v in kw.items():
             setattr(self, k, v) 
 
-        self._value = self.default_value if not "default" in kw else kw["default"]
+        # apply the various general flags/values
+        for k in self.general_keywords:
+            val = kw.get(k) if k in kw else getattr(self.__class__, k)
+            setattr(self, k, val)
+
+        # keeps the explicit value of this field (and it's object, if applicable)
+        self._value = self.default if not "default" in kw else kw["default"]
+        self._value_obj = None
+
+        # parent record class
         self.parent = None
+        # keep the passed keyword-dict from instanciation
         self.passed_kw = kw
 
-    # don't raise exception on non-existing attribute, just return None
+    # if an attribute is in "accepted_keywords", but not set return "None"
     def __getattr__(self, key):
-        return None
+        if key in self.accepted_keywords + self.general_keywords:
+            return None
+        raise AttributeError(key)
 
     def clone(self):
         """Mainly internal use - returnes a clone (copy) of the AbstractField"""
-        return self.__class__(name=self.name, **self.passed_kw)
+        return self.__class__(**self.passed_kw)
 
-    def get_create(self):
-        """Get line to add in a CREATE or ALTER statement"""
-        out = "%s %s" % (self.colname, self.sqlite_name)
-        if self.length:
-            out += "(%s)" % self.length
+    def get_create(self, prefix=None, suffix=None):
+        """Get universal attributes needed for create column query"""
+        out = prefix or ""
+
+        # make this column unique across this table
         if self.unique:
             out += " UNIQUE"
+        
+        # make this column the primary_key column
+        if self.primary_key:
+            out += " PRIMARY KEY ASC"
+
+        # change sql-stmt, if column is required
+        if self.required:
+            out += " NOT NULL"
+        
+        # always set default value for each column
+        default_out = " DEFAULT NULL"
+        if self.default is not None:
+            default_out = " DEFAULT {}".format(self.get_escaped(default=True))
+        out += default_out
+
+        # set column to automatically increment itss value on insert
+        if self.auto_inc:
+            out += " AUTOINCREMENT"
+
+        if suffix is not None:
+            out += suffix
+
         return out
 
     def set(self, v):
         """Set field value to 'v'"""
         self._value = v
+        self._value_obj = None
 
     def get(self):
-        """Get field value"""
+        """Get field (raw) value"""
         return self._value
 
+    def get_escaped(self, default=False):
+        """Get field value escaped/quoted - for sql update/insert"""
+        return self._value if not default else self.default
+
     def pre_save(self, action="insert", obj=None):
-        """This is called directly before saving the object"""
+        """This is called directly before saving (action: 'update' or 'insert') the object"""
         return True
         
     def post_save(self, action="insert", obj=None):
-        """This is called directly after the object was saved"""
-        return True    
+        """This is called directly after the object was saved (action: 'update' or 'insert')"""
+        return True
 
 class IntegerField(AbstractField):
-    sqlite_name = "INT"
-    default_value = 0
-    accepted_keywords = ["unique", "name"]
+    accepted_keywords = ["foreign_key"]
+    default = 0
+
+    # TODO: add different sizes
+    def get_create(self, prefix=None, suffix=None):
+        out = "{} INT".format(self.name)
+        out = super(IntegerField, self).get_create(prefix=out)
+        if prefix:
+            out = prefix + out
+        if suffix:
+            out = out + suffix
+        return out
+
+class IDField(IntegerField):
+    name = "rowid"
+    primary_key = True
+    unique = True
 
 class BooleanField(IntegerField):
-    accepted_keywords = ["name"]
-    
+    default = False
+
     def __init__(self, **kw):
-        if "default" in kw:
-            assert kw["default"] in [True, False, 0, 1]
-             
         super(BooleanField, self).__init__(**kw)
-    
+        assert self.default in [True, False, 0, 1]
+
+    def get_create(self, prefix=None, suffix=None):
+        return (prefix or "") \
+               + super(BooleanField, self).get_create() \
+               + (suffix or "")
+
+    def set(self, val):
+        assert val in [True, False, 0, 1]
+        self._value = val in [True, 1]
+
+    def get_escaped(self, default=False):
+        v = self._value if not default else self.default
+        return 1 if v in [True, 1] else 0
 
 class DateTimeField(IntegerField):
-    accepted_keywords = ["name", "auto_now", "auto_now_add", "unique"]
+    accepted_keywords = ["auto_now", "auto_now_add"]
   
+    def get_create(self, prefix=None, suffix=None):
+        return (prefix or "") \
+               + super(DateTimeField, self).get_create() \
+               + (suffix or "")
+
     def pre_save(self, action="insert", obj=None):
         if (action == "insert" and (self.auto_now_add or self.auto_now)) or \
            (action == "update" and self.auto_now):
             self.set(int(time.time()))
         return True
+
+    def get_fancy_time(self):
+        return FancyTime(self._value).get()
+
+    def get_fancy_datetime(self):
+        return FancyDateTime(self._value).get()
+
+    def get_fancy_date(self):
+        return FancyDate(self._value).get()
       
-class FloatField(IntegerField):
-    sqlite_name = "FLOAT"
-    default_value = 0.0    
-    accepted_keywords = ["name"]
+class FloatField(AbstractField):
+    default = 0.0    
     
+    def get_create(self, prefix=None, suffix=None):
+        out = "{} FLOAT".format(self.name)
+        return (prefix or "") \
+               + super(FloatField, self).get_create(prefix=out) \
+               + (suffix or "")
+
 class StringField(AbstractField):
-    default_value = ""
-    accepted_keywords = ["unique", "name", "length"]
+    accepted_keywords = ["foreign_key"]
+    default = ""
     
-    def __init__(self, **kw):
-        super(StringField, self).__init__(**kw)
-        if self.length > 250:
-            self.sqlite_name = "TEXT"
+    def get_create(self, prefix=None, suffix=None):
+        out = "{} {}".format(self.name, 
+                "TEXT" if self.size > 255 else "VARCHAR", 
+                "({})".format(self.size) if self.size else ""
+            )
+        return (prefix or "") \
+               + super(StringField, self).get_create(prefix=out) \
+               + (suffix or "")
+
+    def get(self):
+        """force string-encoding to ensure correct display/storage"""
+        if self._value is not None:
+            return self._value
+
+        # fallback
+        return self._value
+
+    def set(self, val):
+        """force string-encoding to ensure correct display/storage"""
+        # encode 
+        if val is not None:
+            self._value = val
+        
+        # clearing field - setting it to "None"
         else:
-            self.sqlite_name = "VARCHAR"
+            self._value = val
     
+    def get_escaped(self, default=False):
+        v = self._value if not default else self.default
+        return "'{}'".format(v)
+
     def pre_save(self, action="insert", obj=None):
+        if self._value is None:
+            return not self.required
+
         self.set(self._value.strip())
         return True
 
 class OptionField(StringField):
-    accepted_keywords = ["options", "name"]
-    sqlite_man = "VARCHAR"
+    accepted_keywords = ["options"]
     
     def __init__(self, options, **kw):
         # options must be a regular list of strings, iterable is ok
         assert hasattr(options, "__iter__") and len(options) > 1
         self.options = options
-        kw.update({"options":options})
+
+        # keep provided options
+        kw.update({"options": options})
     
-        # the default value defualts to first item of options if not specified
+        # set size, if not manually done...
+        self.size = max(map(len, options))
+
+        # cross-check own size with provided and so on
+        if kw.get("size") is not None and self.size <= kw.get("size"):
+            raise DatabaseError("provided size ({}<{}) is less than biggest provided option: {}". \
+                    format(kw.get("size"), self.size, ", ".join(options)))
+    
+        # the default value defaults to first item of options, if no 'default' is set
         if "default" in kw:
             assert kw["default"] in options
-            default = kw["default"]
+            self.default = kw["default"]
         else:
-            default = options[0]
-        kw.update({"default": default})            
-            
+            self.default = options[0]
+        kw["default"] = self.default
+        
+        # call parent's ctor
         super(OptionField, self).__init__(**kw)
-        
-    def pre_save(self, action="insert", obj=None):
-        if not self.get() in self.options:
-            return False
-        return True
-      
-class AbstractRelationField(AbstractField):
-    accepted_keywords = ["name", "related_record"]
-    
-    def __init__(self, related_record, **kw):
-        assert issubclass(related_record, BaseRecord)
-        self.related_record = related_record
-        
-        kw.update({"related_record" : related_record})
-        super(AbstractRelationField, self).__init__(**kw)
-  
-class OneToManyRelation(AbstractRelationField):
-    default_value = []
-    
-    def get_related_col(self):
-        for f in self.related_record.base_fields.values():
-            if f.related_record:
-                if self.name in f.related_record.base_fields:
-                    col = f.related_record.table
-                    return col
-    
-    def get(self):
-        from core import DataManager
-        return DataManager(self.related_record, pre_filter={self.get_related_col():self.parent})
-            
+
     def set(self, val):
-        # save parent or we can't save the related entities
-        if not self.parent.rowid:
-            self.parent.save()
-        
-        # directly saving all relations seems not the smartest way to get what we want    
-        if hasattr(val, '__iter__'):
-            for item in val:
-                item.fields[self.get_related_col()].set(self.parent)
-                item.save()   
-        else:
-            raise DatabaseError("passed argument must be an iterable not: %s" % type(val))
-            
-class ManyToOneRelation(AbstractRelationField):
-    sqlite_name = "INT"
-    default_value = 0
+        assert val in self.options
+        self._value = val
+
+class AbstractRelationField(AbstractField):
+    accepted_keywords = ["related_record"]
     
+    def __init__(self, related_record, name=None, related_field=None, **kw):
+        assert issubclass(related_record, BaseRecord)
+        
+        self.name = name or self.name
+
+        kw.update({"related_record" : related_record})
+        if related_field is None:
+            related_field = "re_" + (name or self.__class__.__name__);
+
+        super(AbstractRelationField, self).__init__(**kw)
+        
+        self.related_record = related_record
+        self.related_field = related_field
+        self.name = name
+
+    def get(self):
+        raise NotImplementedError()
+        
+    def set(self, val):
+        raise NotImplementedError()
+
+    def get_create(self, prefix=None, suffix=None):
+        out = "{} {}".format(self.name, "INT")
+        return (prefix or "") \
+               + super(AbstractRelationField, self).get_create(prefix=out) \
+               + (suffix or "")
+
+
+class OneToManyRelation(AbstractRelationField):
     def get(self):
         return self._value
-        
+
     def set(self, val):
-        if val is not None:
-            assert issubclass(val.__class__, BaseRecord)
         self._value = val
-        
-        
-        
-#class ManyToManyRelation(RelationField):
-#    pass
-    
+
+class ManyToOneRelation(AbstractRelationField):
+    def get(self):
+        return self._value
+
+    def set(self, val):
+        self._value = val
+            
+class ManyToManyRelation(AbstractRelationField):
+    def get(self):
+        return self._value
+
+    def set(self):
+        self._value = val
+
+class OneToOneRelation(AbstractRelationField):
+    def get(self):
+        return self._value
+
+    def set(self, val):
+        self._value = val
+ 
+##### the object-based interface - to be done, but explicit!!!
+##### - means no in-transparent "magic" to 
+#####   return objects one time and IDs another time
+#    def get_obj(self):
+#        """Get associated field object"""
+#        if self._value_obj is not None:
+#            return self._value_obj
+#        return self.related_record.objects.get(rowid=self._value)
+#
+#    def set_obj(self, v):
+#        """Set associated field object"""
+#        self._value.rowid
+#        self._value_obj = v
