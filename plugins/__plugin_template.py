@@ -85,7 +85,6 @@ class MyRecord(BaseRecord):
 #            
 #      "config"         -> a dict providing configuration data for this plugin
 #      "needed_configs" -> a list of mandatory configuration items to be found inside the config-dict
-#      "name2plugin"    -> keeps a map (dict) of all active plugins with 'name' being the key
 #
 #      "doc"            -> a dictionary containing 2-tuples with the command as key to show help. (optional)
 #                           only if plugin contains commands, all items from self.provide must be availible as keys here.
