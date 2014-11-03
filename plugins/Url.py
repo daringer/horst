@@ -21,7 +21,7 @@ class UrlRecord(BaseRecord):
 class Url(AbstractPlugin):
     author = "meissna"
 
-    react_to = {"public": re.compile("(?P<url>((?P<protocol>(http(?:s)?\:\/\/)?)[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,6}(?:\/?|(?:\/[\w\-]+)*)(?:\/?|\/\w+\.[a-zA-Z]{2,4}(?:\?[\w]+\=[\w\-]+)?)?(?:\&[\w]+\=[\w\-]+)*)([^ ]*))"),
+    react_to = {"public": re.compile(r"(?P<url>((?P<protocol>(http(?:s)?\:\/\/)?)[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,6}(?:\/?|(?:\/[\w\-]+)*)(?:\/?|\/\w+\.[a-zA-Z]{2,4}(?:\?[\w]+\=[\w\-]+)?)?(?:\&[\w]+\=[\w\-]+)*)([^ ]*))"),
                  "public_command": re.compile(r"(?P<query>.*)") } 
 
     provide = ["url"]
