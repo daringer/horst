@@ -14,6 +14,7 @@ Quickstart
   - server
   - port 
   - nick 
+  - chans
 
 * and save/copy it as/to config.py: ```cp config.py.tmpl config.py```
 * run it and have fun: ```python2 horst.py```
