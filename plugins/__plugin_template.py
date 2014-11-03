@@ -54,33 +54,45 @@ class MyRecord(BaseRecord):
 
 # The plugin class has to be the same name (including case) as the plugin filename:
 # Following classattributes have special meanings: 
-#           "react_to" -> has to be a dict with keys out of these:
+#     "react_to"      ->   has to be a dict with keys out of these:
 #                          ["private", "public", "dcc", "join", "leave",
 #                          "server_connect", "enter_channel", "nick_change", "leave_channel",
 #                          "public_command"]
-#
+#                     
 #                          The values must be a compiled regular expression
 #                          like returned from re.compile(). Use (?:\s+) to
 #                          match whitespaces and use named groups so the resulting
 #                          dict will be passed to react(). An example:
-#
+#                     
 #                          re.compile("(?P<command>foo)(?:\s+)(?P<option>do|not|yes)(?:\s+)(?P<value>.+)") 
 #                           
 #                          The regular expressions for "private" and "public_command"
 #                          only match against                      
-#                          
-#            "timers"   -> list of 2-tuples, register the provided method(s) for a timer based execution.
-#                           You may register the method as string or as a callable object!
-#                           [("methodname", timeout_in_seconds), (method_object, timeout_in_seconds)]
+#                    
+#      "timers"         -> list of 2-tuples, register the provided method(s) for a timer based execution.
+#                          You may register the method as string or as a callable object!
+#                          [("methodname", timeout_in_seconds), (method_object, timeout_in_seconds)]
 #
-#            "author"   -> The plugin author
+#      "author"         -> The plugin author
 #                          
-#            "provide"  -> A list of commands provided by this plugin, \
+#      "provide"        -> A list of commands provided by this plugin, \
 #                          private commands are marked with an underscore "_" in front
+#
+#      "aliases"        -> dict {str: str} mapping <alias> to a <provide-cmd>,
+#                          the alias works exactly like the original, without 
+#                          the need to add documentation for it.
+#                          
 #            
-#            "doc"      -> a dictionary containing 2-tuples with the command as key to show help. (optional)
-#                          only if plugin contains commands, all items from self.provide must be availible as keys here.
-#            "__doc__"  -> a docstring giving some basic information about this plugin            
+#      "config"         -> a dict providing configuration data for this plugin
+#      "needed_configs" -> a list of mandatory configuration items to be found inside the config-dict
+#      "name2plugin"    -> keeps a map (dict) of all active plugins with 'name' being the key
+#
+#      "doc"            -> a dictionary containing 2-tuples with the command as key to show help. (optional)
+#                           only if plugin contains commands, all items from self.provide must be availible as keys here.
+#
+#      "final_setup"    -> a function being called before the boss...
+#
+#      "__doc__"        -> a docstring giving some basic information about this plugin            
 
 class MyPlugin(AbstractPlugin):
     author = "myfancyname"
