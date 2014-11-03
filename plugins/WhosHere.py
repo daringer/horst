@@ -17,6 +17,6 @@ class WhosHere(AbstractPlugin):
     def react(self, data):
         data.chan << ", ".join(u.name for u in data.chan.users)
                         
-    doc = { "whoshere" : ("whoshere", "Ich sage wer alles in dem Channel rumhängt"),
+    doc = { "whoshere" : ("whoshere", "Ich sage wer alles in dem Channel rumhängt") }
             #"whois" : ("whois <nick>", "Ich geb dir den Hostname von 'nick'") }
     __doc__ = "Giving additional channel and user information"
