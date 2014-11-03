@@ -12,40 +12,54 @@ class ShowHelp(AbstractPlugin):
     react_to = {"public_command": re.compile(r"(?P<help>(.*))")}
     provide = ["help", "helpindex", "showplugins"]
 
-
     def react(self, data):
-
         all_cmds = self.horst_obj.known_commands
-        plugins = self.horst_obj.plugins
+        plugins = self.horst_obj.plugins 
+        aliases = self.horst_obj.known_aliases
 
+        ### show all available (public) commands 
         if data.command == "helpindex":
-            data.chan << ", ".join(all_cmds.keys())
+            data.chan << ", ".join("{}=>{}".format(x, aliases[x]) \
+                    if x in aliases else x for x in sorted(all_cmds.keys()))
 
+        ### show all active plugins
         elif data.command == "showplugins":
-            data.chan << "Showing all active plugins:" 
+            data.chan << "Zeige alle aktiven Plugins:" 
             for plugin in plugins:
-                data.chan << "{0} -> {1}".format(plugin.__class__.__name__, plugin.__doc__)
+                data.chan << "{} -> {}". \
+                        format(plugin.__class__.__name__, plugin.__doc__)
 
+        ### show help for one specific command
         elif data.line["help"]:
             cmd = data.line["help"]
             if cmd in all_cmds:
-                data.chan << ["Hilfe für: " + all_cmds[cmd].doc[cmd][0], all_cmds[cmd].doc[cmd][1]]
+                data.chan << ["Hilfe für: {} {}".format(
+                    all_cmds[cmd].doc[cmd][0],all_cmds[cmd].doc[cmd][1])]
             else:
-                data.chan << "Buuuh, keine doku für %s gefunden, gibts das überhaupt???" % cmd  
+                data.chan << "Buuuh, keine Doks für {} gefunden".format(cmd)
+                data.chan << "... das geht doch gar nicht!?"
+
+        ### show generic - full help overview
         else:
             data.chan << "Ich kann schon helfen, das ist doch mal was:" 
-            private_list = []
-            data.chan << "Public Commands:"
+            data.chan << "-------- öffentliche --------"
+            private_list, alias_list = [], []
             for cmd, plugin in all_cmds.items():
-                private = "_%s" % cmd in plugin.provide
-                if not private:
+                private = "_{}".format(cmd) in plugin.provide 
+                if not private and cmd not in aliases:
                     data.chan << self.command_prefix + plugin.doc[cmd][0] 
+                elif cmd in aliases:
+                    alias_list.append("{} => {}".format(cmd, aliases[cmd]))
                 else:
-                    private_list += [plugin.doc[cmd][0]]
-            data.chan << "Private Commands:"
+                    private_list.append(plugin.doc[cmd][0])
+                    
+            data.chan << "-------- privat --------"
             data.chan << private_list
+            data.chan << "-------- alias --------"
+            data.chan << (", ".join(alias_list))
 
     doc = {"help"        : ("help [command]", "Zeigt dir alle commands, wenn ohne Argument, sonst Details zum 'command'"),
-           "helpindex"   : ("helpindex", "Zeige eine Liste aller verfügbaren Befehle an"),
-           "showplugins" : ("showplugins", "Zeige eine Liste aller aktiven Plugins an")}
+           "helpindex"   : ("helpindex",      "Zeige eine Liste aller verfügbaren Befehle an, inklusive Aliase...."),
+           "showplugins" : ("showplugins",    "Zeige eine Liste aller aktiven Plugins an")}
+
     __doc__ = "Provides the help and show active plugins functionality"

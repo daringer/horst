@@ -11,21 +11,20 @@ import sys
 
 from db.fields import StringField, DateTimeField, BaseRecord
 from abstract import AbstractPlugin
-#from utils import FancyDateTime, FancyTime, FancyFloat, FancyDate
 
 __metaclass__ = type
 
 class GithubRepository(BaseRecord):
-    user = StringField(length=250)
-    repo = StringField(length=250)
-    last_sha = StringField(length=50)
+    user = StringField(size=250)
+    repo = StringField(size=250)
+    last_sha = StringField(size=50)
     #last_check = DateTimeField(auto_now=True)
 
 class Github(AbstractPlugin):
     author = "meissna"
     react_to = {"public_command": re.compile(r"(?P<action>add|del|list)(?:\s*)(?P<user>[^\s]*)(?:\s*)(?P<repo>[^\s]*)")} 
     provide = ["github"]
-    timer = [("check_all_repos", 300)]
+    timer = [("check_all_repos", 150)]
 
     def check_repo(self, user, repo, horst_obj):
         host = "api.github.com"
@@ -34,7 +33,7 @@ class Github(AbstractPlugin):
         r = urllib2.Request(url)
         fd = urllib2.urlopen(r)
         
-	item = json.loads(fd.read())[0]
+        item = json.loads(fd.read())[0]
         
         commit_sha = item["sha"]
         commit = item["commit"]

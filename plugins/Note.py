@@ -16,7 +16,7 @@ __metaclass__ = type
 
 class NoteRecord(BaseRecord):
     user = ManyToOneRelation(UserRecord)
-    text = StringField(length=5000000)
+    text = StringField(size=5000000)
     created = DateTimeField(auto_now=True)
     deleted = BooleanField()
 
