@@ -21,7 +21,7 @@ class UrlRecord(BaseRecord):
 class Url(AbstractPlugin):
     author = "meissna"
 
-    react_to = {"public": re.compile("(?P<url>((?P<protocol>(http(?:s)?\:\/\/)?)[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,6}(?:\/?|(?:\/[\w\-]+)*)(?:\/?|\/\w+\.[a-zA-Z]{2,4}(?:\?[\w]+\=[\w\-]+)?)?(?:\&[\w]+\=[\w\-]+)*))"),
+    react_to = {"public": re.compile("(?P<url>((?P<protocol>(http(?:s)?\:\/\/)?)[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,6}(?:\/?|(?:\/[\w\-]+)*)(?:\/?|\/\w+\.[a-zA-Z]{2,4}(?:\?[\w]+\=[\w\-]+)?)?(?:\&[\w]+\=[\w\-]+)*)([^ ]*))"),
                  "public_command": re.compile(r"(?P<query>.*)") } 
 
     provide = ["url"]
@@ -40,11 +40,17 @@ class Url(AbstractPlugin):
             if isinstance(title, (list, tuple)):
                 title = title[0]
 
-            data.chan << "URL gefunne: {}".format(myurl)
-            data.chan << "Titel: {}".format(title)
+            u = UrlRecord.objects.get(url=myurl)
+            if u is not None:
+                data.chan << "Pffff, laaaangweilig, die URL hab ich schon gesehn, vor laaaanger Zeit: {}".\
+                        format(FancyDateTime(u.pub_date).get())
+            else:
 
-            o = UrlRecord(url=myurl, title=title)
-            o.save()
+                data.chan << "URL gefunne: {}".format(myurl)
+                data.chan << "Titel: {}".format(title)
+
+                o = UrlRecord(url=myurl, title=title)
+                o.save()
 
         elif data.reaction_type == "public_command":
             if data.line["query"] is not None:
