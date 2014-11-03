@@ -21,7 +21,7 @@ class ReloadPlugin(AbstractPlugin):
 
         if name in self.horst_obj.name2pobj:
             try:
-                self.horst_obj.init_plugin(name)
+                self.horst_obj.init_plugin(name, relo=True)
                 data.chan << "Wohoo, Plugin/Modul ({}) neu geladen, bam!".format(name)
             except Exception as e:
                 data.chan << "FUUUUCK -> {} Fehlerdinges waerend dem relaod, fies - gogo fix das!". \

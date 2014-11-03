@@ -88,17 +88,18 @@ class Stats(AbstractPlugin):
                         format( FancyDateTime(show.last_activity).get(), FancyDateTime(show.first_seen).get() )
 
                 if show.chars != 0 and show.seconds_online != 0:
-                    data.chan << "Im Schnitt pro     Tag | Stunde | Minute"
+                    data.chan << "Im Schnitt pro     Tag  | Stunde |  Minute"
                     
                     units = [ show.seconds_online/float(x) for x in (60*60*24, 60*60, 60) ]
                     
                     lines, words, chars = [ ([FancyFloat(count / x) for x in units ]) \
                             for count in [show.lines, show.words, show.chars] ]
 
-                    for desc, vals in [("Zeilen", lines), ("Woerter ", words), ("Zeichen", chars)]:
+                    for desc, (day, hour, minute) in [("Zeilen ", lines), ("Wörter ", words), ("Zeichen", chars)]:
+                        #print desc, vals
                         #data.chan << "%s:%s %8s | %6s | %6s" % ((desc, (" "*(12-len(desc)))) + tuple(vals))
-                        data.chan << "{:<12}:{:<12} {:<8} | {:<6} | {:<6}". \
-                                format(desc, *vals)
+                        #data.chan << ("{} | {}".format(desc, str(vals)))
+                        data.chan << "{:<17} {:>6} | {:>6} | {:>6}".format(desc, day, hour, minute)
 
                 else:
                     data.chan << "Hat aber noch nicht ein einziges Zeichen geschrieben..."                
