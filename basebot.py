@@ -335,6 +335,11 @@ class BaseIRCBot(SingleServerIRCBot):
         register own timers simply inside the plugins!"""
         time.sleep(4)
         last_stamp = time.time()
+
+
+        # self.timers contains a list of lists, each representing 
+        # a specific timer task:
+        # time_data = [ function to call, remaining time, timer timeout ]
         while True:
             try:
                 time.sleep(0.5)
@@ -342,18 +347,24 @@ class BaseIRCBot(SingleServerIRCBot):
                 for time_data in self.timers:
                     time_data[1] -= (stamp - last_stamp)
                     if time_data[1] < 0:
-                        time_data[0](self)
+                        try:
+                            time_data[0](self)
+                        except Exception as e:
+                            print e, str(e)
+                            for n, chan in self.chans.items():
+                                chan << "bad: timer callback method-call threw unexpected stuff..."
+
                         time_data[1] = int(time_data[2])
                         break
                 last_stamp = stamp
             except Exception as e:
                 print e, str(e)
-                for chan in self.chans:
+                for n, chan in self.chans.items():
                     chan << "Wh00t, timer-thread crashed :(( !!!"
-                    if not Config.timer_crash_watchdog:
+                    if not self.config.timer_crash_watchdog:
                         sys.exit(1)
 
-        for chan in self.chans:
+        for n, chan in self.chans.items():
             chan << "What brought me here, baaaad, goin' to crash - bye bye..."
             sys.exit(1)
                 
