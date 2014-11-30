@@ -11,11 +11,15 @@ from config import Config
 
 __metaclass__ = type
 
+
+UNIQUE_ROW_ID_NAME = "rowid"
+
+
 # fancier use of properties
 #Property = lambda func: property(**func()) 
 
 class AbstractField(object):
-    """Every Field class should be a derivate from this class"""
+    """Every Field class derives from this class"""
     __metaclass__ = ABCMeta
     
     # various field flags (globally accepted keywords)
@@ -122,7 +126,10 @@ class AbstractField(object):
         """This is called directly after the object was saved (action: 'update' or 'insert')"""
         return True
 
-class IntegerField(AbstractField):
+class InegerField(AbstractField):
+    """Store a single integer value. 
+    The backend should provide at least 32bit signed
+    """
     accepted_keywords = ["foreign_key"]
     default = 0
 
@@ -137,11 +144,13 @@ class IntegerField(AbstractField):
         return out
 
 class IDField(IntegerField):
-    name = "rowid"
+    """Store the unique row identification."""
+    name = UNIQUE_ROW_ID_NAME
     primary_key = True
     unique = True
 
 class BooleanField(IntegerField):
+    """Store a single boolean values."""
     default = False
 
     def __init__(self, **kw):
@@ -162,6 +171,7 @@ class BooleanField(IntegerField):
         return 1 if v in [True, 1] else 0
 
 class DateTimeField(IntegerField):
+    """Store a single date and time values."""
     accepted_keywords = ["auto_now", "auto_now_add"]
   
     def get_create(self, prefix=None, suffix=None):
@@ -185,6 +195,9 @@ class DateTimeField(IntegerField):
         return FancyDate(self._value).get()
       
 class FloatField(AbstractField):
+    """Store a floating point number.
+    The backend should provide at least 32bit
+    """
     default = 0.0    
     
     def get_create(self, prefix=None, suffix=None):
@@ -193,7 +206,16 @@ class FloatField(AbstractField):
                + super(FloatField, self).get_create(prefix=out) \
                + (suffix or "")
 
+class BlobField(AbstractField):
+    """Store a raw binary block of any size."""
+    def get_create(self, prefix=None, suffix=None):
+        out = "{} BLOB".format(self.name)
+        return (prefix or "") \
+                + super(BlobField, self).get_create(prefix=out) \
+                + (suffix or "")
+
 class StringField(AbstractField):
+    """Store a string, i.e., some "useful" string - includes stripping..."""
     accepted_keywords = ["foreign_key"]
     default = ""
     
@@ -206,24 +228,6 @@ class StringField(AbstractField):
                + super(StringField, self).get_create(prefix=out) \
                + (suffix or "")
 
-    def get(self):
-        """force string-encoding to ensure correct display/storage"""
-        if self._value is not None:
-            return self._value
-
-        # fallback
-        return self._value
-
-    def set(self, val):
-        """force string-encoding to ensure correct display/storage"""
-        # encode 
-        if val is not None:
-            self._value = val
-        
-        # clearing field - setting it to "None"
-        else:
-            self._value = val
-    
     def get_escaped(self, default=False):
         v = self._value if not default else self.default
         return "'{}'".format(v)
@@ -236,6 +240,7 @@ class StringField(AbstractField):
         return True
 
 class OptionField(StringField):
+    """Store one of the provided options as string."""
     accepted_keywords = ["options"]
     
     def __init__(self, options, **kw):

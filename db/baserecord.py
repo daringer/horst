@@ -30,9 +30,9 @@ class MetaBaseRecord(type):
                     cls.setup_field(att, field)
         
             # this does not behave as expected inside sqlite3 
-            # - rowid named col needs AUTOINC, which sux (perfomance)
+            # - rowid named col needs AUTOINC, which sux (performance)
             # - so omit this and use built-in rowid, 
-            #   which works nicely except for the unintuative interface (select rowid, * ...)
+            #   which works nicely except for the unintuitive interface (select rowid, * ...)
             #
             # if there is no explicit column named: 'rowid', create one as primary_key!!!
             #if "rowid" not in cls.base_fields:
