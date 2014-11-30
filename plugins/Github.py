@@ -47,7 +47,7 @@ class Github(AbstractPlugin):
 		    chan << "Whooot neuer Commit auf Github - User: {} in Repo: {}".format(user, repo)
 		    chan << "Autor: {}".format(author)
 		    chan << "Message: {}".format(comment)
-	    obj.last_sha = commit_sha
+            obj.last_sha = commit_sha
             obj.save()
 
     def check_all_repos(self, horst_obj):

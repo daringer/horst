@@ -333,25 +333,35 @@ class BaseIRCBot(SingleServerIRCBot):
     def timer_thread(self):
         """Idle-looping thread for timer-based plugins, 
         register own timers simply inside the plugins!"""
-
         time.sleep(4)
         last_stamp = time.time()
         while True:
-            time.sleep(0.5)
-            stamp = time.time()
-            for time_data in self.timers:
-                time_data[1] -= (stamp - last_stamp)
-                if time_data[1] < 0:
-                    time_data[0](self)
-                    time_data[1] = int(time_data[2])
-                    break
+            try:
+                time.sleep(0.5)
+                stamp = time.time()
+                for time_data in self.timers:
+                    time_data[1] -= (stamp - last_stamp)
+                    if time_data[1] < 0:
+                        time_data[0](self)
+                        time_data[1] = int(time_data[2])
+                        break
+                last_stamp = stamp
+            except Exception as e:
+                print e, str(e)
+                for chan in self.chans:
+                    chan << "Wh00t, timer-thread crashed :(( !!!"
+                    if not Config.timer_crash_watchdog:
+                        sys.exit(1)
 
-            last_stamp = stamp
+        for chan in self.chans:
+            chan << "What brought me here, baaaad, goin' to crash - bye bye..."
+            sys.exit(1)
                 
     def online_watchdog(self):
         """Watchdog to have second fallback (after on_disconnect) 
-        to make sure the bot is always connected and inside the designated channels.
-        ATTENTION: Currently not working (FIXME).
+        to make sure the bot is always connected and inside the 
+        designated channels. 
+        ATTENTION: Currently not fully(?) working (FIXME).
         """
         
         while True:
