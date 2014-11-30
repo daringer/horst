@@ -126,7 +126,7 @@ class AbstractField(object):
         """This is called directly after the object was saved (action: 'update' or 'insert')"""
         return True
 
-class InegerField(AbstractField):
+class IntegerField(AbstractField):
     """Store a single integer value. 
     The backend should provide at least 32bit signed
     """
