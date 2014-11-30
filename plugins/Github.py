@@ -18,7 +18,6 @@ class GithubRepository(BaseRecord):
     user = StringField(size=250)
     repo = StringField(size=250)
     last_sha = StringField(size=50)
-    #last_check = DateTimeField(auto_now=True)
 
 class Github(AbstractPlugin):
     author = "meissna"
@@ -28,9 +27,16 @@ class Github(AbstractPlugin):
 
     def check_repo(self, user, repo, horst_obj):
         host = "api.github.com"
-        args = urllib.urlencode({"page": "1", "per_page": "1"})
+        args = urllib.urlencode({
+            "access_token": self.config["api_key"],
+            "page": "1", 
+            "per_page": "1"
+        })
         url = "https://{}/repos/{}/{}/commits?{}".format(host, user, repo, args)
+        
         r = urllib2.Request(url)
+        r.add_header("User-Agent", "Python2.7 irc/github bot")
+        r.add_header("Authorization","token {}".format(self.config["api_key"]))
         fd = urllib2.urlopen(r)
         
         item = json.loads(fd.read())[0]
