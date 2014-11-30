@@ -13,3 +13,4 @@
     myhello = Hello guys this is an english text
   - provide global function _(str_id) which returns the appropriate string for the global set language
 
+- move db/ stuff into own project...
