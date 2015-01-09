@@ -53,9 +53,9 @@ class FancyFloat(FancyPrint):
     def __str__(self):
         if self.raw > 100:
             return str(round(self.raw))
-        elif self.raw <= 1:
+        elif self.raw < 1:
             return str(round(self.raw, 4))
-        elif self.raw <= 10:
+        elif self.raw < 10:
             return str(round(self.raw, 2))
         else:
             return str(round(self.raw, 1))
@@ -77,6 +77,9 @@ class Channel:
         self.connection = conn
         self.join_time = timestamp()
         self.users = []
+
+        # if true, never say something in public
+        self.quiet = False
     
     def __eq__(self, other):
         return self.name == other.name
@@ -89,7 +92,8 @@ class Channel:
     
     def __lshift__(self, msg):
         """Shortcut for .send() - just do a: chan_obj << "my text to send"""
-        self.send(msg)
+        if not self.silent:
+            self.send(msg)
     
     def __repr__(self):
         return "<Channel name=%s join_time=%s users=%s>" % \
